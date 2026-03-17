@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Assistant IA — Laet's IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F8F5EF;
+    --accent: #C93D0E;
+    --dark: #0F0E0C;
+    --mid: #3A3730;
+    --soft: #E8E3DA;
+    --warm: #C4B9A8;
+    --white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--dark);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--soft);
+  }
+
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--warm);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* MAIN LAYOUT */
+  .app-container {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 60px 40px 100px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 56px;
+  }
+
+  .progress-step {
+    flex: 1;
+    height: 3px;
+    background: var(--soft);
+    border-radius: 2px;
+    transition: background 0.4s ease;
+  }
+
+  .progress-step.done { background: var(--accent); }
+  .progress-step.active { background: var(--dark); }
+
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--warm);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* QUESTION PANELS */
+  .question-panel {
+    display: none;
+    animation: fadeUp 0.45s ease forwards;
+  }
+
+  .question-panel.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .q-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 10px;
+  }
+
+  .q-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .q-sub {
+    font-size: 0.95rem;
+    color: var(--mid);
+    line-height: 1.65;
+    margin-bottom: 36px;
+    max-width: 520px;
+  }
+
+  /* CHIPS */
+  .chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .chip {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 50px;
+    border: 1.5px solid var(--soft);
+    background: var(--white);
+    color: var(--mid);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .chip:hover { border-color: var(--dark); color: var(--dark); }
+  .chip.active { background: var(--dark); color: var(--cream); border-color: var(--dark); }
+
+  /* GRID CHIPS (tâches) */
+  .chips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .chip-block {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1.5px solid var(--soft);
+    background: var(--white);
+    color: var(--mid);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    user-select: none;
+  }
+
+  .chip-block:hover { border-color: var(--dark); }
+  .chip-block.active { background: var(--dark); color: var(--cream); border-color: var(--dark); }
+
+  /* TON GRID */
+  .ton-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .ton-card {
+    padding: 20px 22px;
+    border-radius: 16px;
+    border: 1.5px solid var(--soft);
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .ton-card:hover { border-color: var(--dark); transform: translateY(-2px); }
+
+  .ton-card.active {
+    border-color: var(--accent);
+    background: #FDF2EE;
+  }
+
+  .ton-emoji { font-size: 1.4rem; margin-bottom: 8px; display: block; }
+
+  .ton-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    color: var(--dark);
+  }
+
+  .ton-desc {
+    font-size: 0.78rem;
+    color: var(--warm);
+    line-height: 1.4;
+  }
+
+  /* TEXTAREA */
+  .input-wrap {
+    margin-bottom: 32px;
+  }
+
+  .input-wrap label {
+    display: block;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--mid);
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--white);
+    border: 1.5px solid var(--soft);
+    border-radius: 14px;
+    padding: 16px 20px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--dark);
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.65;
+    resize: none;
+  }
+
+  textarea:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201,61,14,0.08);
+  }
+
+  textarea::placeholder, input::placeholder { color: var(--warm); }
+
+  /* BUTTONS */
+  .btn-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--dark);
+    color: var(--cream);
+    border: none;
+    border-radius: 12px;
+    padding: 16px 32px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-next:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(201,61,14,0.2);
+  }
+
+  .btn-next .arrow { transition: transform 0.2s; }
+  .btn-next:hover .arrow { transform: translateX(4px); }
+
+  /* GENERATING SCREEN */
+  #screen-generating {
+    display: none;
+    text-align: center;
+    padding: 80px 0;
+  }
+
+  .gen-visual {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--soft);
+    border-top-color: var(--accent);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 32px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #screen-generating h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  #screen-generating p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--warm);
+    letter-spacing: 0.06em;
+  }
+
+  /* RESULT SCREEN */
+  #screen-result {
+    display: none;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .result-header {
+    margin-bottom: 40px;
+  }
+
+  .result-header .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .result-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+
+  .result-header p {
+    color: var(--mid);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  /* PROMPT BOX */
+  .prompt-box {
+    background: var(--dark);
+    border-radius: 20px;
+    padding: 36px 40px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .prompt-box-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--warm);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .prompt-box-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  #promptOutput {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: #D4C9B8;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: var(--warm);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .copy-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .copy-btn.copied { background: #2a7a4a; color: white; border-color: #2a7a4a; }
+
+  /* HOW TO USE */
+  .how-to {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    border: 1px solid var(--soft);
+  }
+
+  .how-to h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    margin-bottom: 18px;
+    letter-spacing: -0.02em;
+  }
+
+  .how-step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+
+  .how-step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    background: var(--accent);
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .how-step p {
+    font-size: 0.88rem;
+    color: var(--mid);
+    line-height: 1.6;
+  }
+
+  .how-step a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .how-step a:hover { text-decoration: underline; }
+
+  /* SPRINT CTA */
+  .sprint-cta {
+    background: linear-gradient(135deg, #1a1815 0%, #0F0E0C 100%);
+    border-radius: 20px;
+    padding: 40px 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 24px;
+  }
+
+  .sprint-text p:first-child {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    color: var(--cream);
+    line-height: 1.3;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .sprint-text p:last-child {
+    font-size: 0.85rem;
+    color: var(--warm);
+    line-height: 1.5;
+  }
+
+  .btn-sprint {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 28px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-sprint:hover { background: #a83009; transform: translateY(-2px); }
+
+  .btn-restart {
+    background: transparent;
+    border: 1.5px solid var(--soft);
+    border-radius: 10px;
+    color: var(--mid);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 12px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-restart:hover { border-color: var(--dark); color: var(--dark); }
+
+  /* ERROR */
+  .error-box {
+    background: #FDF2EE;
+    border: 1.5px solid #f0c4b4;
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 0.88rem;
+    color: var(--accent);
+    margin-top: 16px;
+    display: none;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 620px) {
+    header { padding: 18px 24px; }
+    .app-container { padding: 40px 24px 80px; }
+    .chips-grid { grid-template-columns: 1fr; }
+    .ton-grid { grid-template-columns: 1fr; }
+    .sprint-cta { flex-direction: column; text-align: center; }
+    .prompt-box { padding: 28px 24px; }
+    .copy-btn { position: static; margin-top: 20px; display: block; width: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Laet's <span>IA</span></div>
+  <div class="header-tag">Ton assistant IA en 5 min</div>
+</header>
+
+<div class="app-container">
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-step active" id="ps1"></div>
+    <div class="progress-step" id="ps2"></div>
+    <div class="progress-step" id="ps3"></div>
+    <div class="progress-step" id="ps4"></div>
+    <div class="progress-step" id="ps5"></div>
+    <span class="progress-label" id="progressLabel">1 / 5</span>
+  </div>
+
+  <!-- Q1 — MÉTIER -->
+  <div class="question-panel active" id="q1">
+    <div class="q-label">Question 1 — Ton activité</div>
+    <h1 class="q-title">Tu fais <em>quoi</em><br>dans la vie ?</h1>
+    <p class="q-sub">Choisis ton profil ou décris-toi en quelques mots. Plus c'est précis, meilleur sera ton assistant.</p>
+
+    <div class="chips-row" id="metierChips">
+      <button class="chip" onclick="selectChip(this, 'metier')">Freelance / Consultant·e</button>
+      <button class="chip" onclick="selectChip(this, 'metier')">Coach / Thérapeute</button>
+      <button class="chip" onclick="selectChip(this, 'metier')">Artisan / Commerce local</button>
+      <button class="chip" onclick="selectChip(this, 'metier')">Créatif·ve / Designer</button>
+      <button class="chip" onclick="selectChip(this, 'metier')">Formateur·trice</button>
+      <button class="chip" onclick="selectChip(this, 'metier')">Autre</button>
+    </div>
+
+    <div class="input-wrap">
+      <label>Décris ton activité (optionnel mais recommandé)</label>
+      <textarea id="metierDesc" rows="3" placeholder="Ex : je suis photographe indépendant, je gère tout seul — clients, devis, réseaux, livraisons…"></textarea>
+    </div>
+
+    <button class="btn-next" onclick="goTo(2)">Continuer <span class="arrow">→</span></button>
+    <div class="error-box" id="err1">Choisis un profil ou décris ton activité avant de continuer.</div>
+  </div>
+
+  <!-- Q2 — CLIENTS -->
+  <div class="question-panel" id="q2">
+    <div class="q-label">Question 2 — Tes clients</div>
+    <h1 class="q-title">Tu travailles<br>avec <em>qui</em> ?</h1>
+    <p class="q-sub">Décris tes clients en une phrase concrète. Qui sont-ils, ce qu'ils cherchent, leur contexte.</p>
+
+    <div class="input-wrap">
+      <label>Tes clients, c'est…</label>
+      <textarea id="clientsDesc" rows="3" placeholder="Ex : des PME entre 10 et 50 salariés qui cherchent à automatiser leur compta / des mamans en reconversion qui veulent se lancer en ligne…"></textarea>
+    </div>
+
+    <button class="btn-next" onclick="goTo(3)">Continuer <span class="arrow">→</span></button>
+    <div class="error-box" id="err2">Décris tes clients avant de continuer.</div>
+  </div>
+
+  <!-- Q3 — TÂCHES -->
+  <div class="question-panel" id="q3">
+    <div class="q-label">Question 3 — Ton quotidien</div>
+    <h1 class="q-title">Ce qui te<br><em>bouffe</em> du temps ?</h1>
+    <p class="q-sub">Choisis jusqu'à 3 tâches. Ton assistant sera optimisé pour t'aider sur ces points précis.</p>
+
+    <div class="chips-grid" id="tachesChips">
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">📧 Emails & réponses clients</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">✍️ Rédaction & textes</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">📱 Contenu réseaux sociaux</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">💡 Trouver des idées</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">📝 Devis & propositions</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">🔍 Recherche & veille</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">🗓️ Organisation & planning</button>
+      <button class="chip-block" onclick="selectMulti(this, 'taches', 3)">🎯 Stratégie & offres</button>
+    </div>
+
+    <button class="btn-next" onclick="goTo(4)">Continuer <span class="arrow">→</span></button>
+    <div class="error-box" id="err3">Sélectionne au moins une tâche.</div>
+  </div>
+
+  <!-- Q4 — TON -->
+  <div class="question-panel" id="q4">
+    <div class="q-label">Question 4 — Ton style</div>
+    <h1 class="q-title">Comment tu parles<br>à tes <em>clients</em> ?</h1>
+    <p class="q-sub">Ton assistant adoptera exactement ce ton pour toutes ses réponses.</p>
+
+    <div class="ton-grid">
+      <div class="ton-card" onclick="selectTon(this, 'Professionnel & formel')">
+        <span class="ton-emoji">🎩</span>
+        <div class="ton-name">Professionnel & formel</div>
+        <div class="ton-desc">Sérieux, structuré, vocabulaire précis</div>
+      </div>
+      <div class="ton-card" onclick="selectTon(this, 'Chaleureux & proche')">
+        <span class="ton-emoji">☀️</span>
+        <div class="ton-name">Chaleureux & proche</div>
+        <div class="ton-desc">Humain, accessible, tutoiement naturel</div>
+      </div>
+      <div class="ton-card" onclick="selectTon(this, 'Direct & cash')">
+        <span class="ton-emoji">⚡</span>
+        <div class="ton-name">Direct & cash</div>
+        <div class="ton-desc">Efficace, sans détour, va à l'essentiel</div>
+      </div>
+      <div class="ton-card" onclick="selectTon(this, 'Expert & pédagogue')">
+        <span class="ton-emoji">🎓</span>
+        <div class="ton-name">Expert & pédagogue</div>
+        <div class="ton-desc">Explique, rassure, vulgarise</div>
+      </div>
+    </div>
+
+    <button class="btn-next" onclick="goTo(5)">Continuer <span class="arrow">→</span></button>
+    <div class="error-box" id="err4">Choisis un style de communication.</div>
+  </div>
+
+  <!-- Q5 — OBJECTIF -->
+  <div class="question-panel" id="q5">
+    <div class="q-label">Question 5 — L'essentiel</div>
+    <h1 class="q-title">Si ton assistant<br>ne faisait <em>qu'une chose</em>…</h1>
+    <p class="q-sub">Ce serait quoi ? C'est la question la plus importante — sois précis·e, c'est ici que la magie opère.</p>
+
+    <div class="input-wrap">
+      <label>Ce que ton assistant doit faire mieux que tout</label>
+      <textarea id="objectifDesc" rows="4" placeholder="Ex : m'aider à répondre aux objections clients sans perdre ma vente / rédiger mes posts LinkedIn en gardant exactement ma façon de parler / me suggérer des offres adaptées à mon profil de client…"></textarea>
+    </div>
+
+    <button class="btn-next" onclick="generate()">Créer mon assistant IA <span class="arrow">→</span></button>
+    <div class="error-box" id="err5">Décris ce que ton assistant doit faire en priorité.</div>
+  </div>
+
+  <!-- GENERATING -->
+  <div id="screen-generating">
+    <div class="gen-visual"></div>
+    <h2>Je configure ton assistant…</h2>
+    <p>Analyse de ton profil en cours</p>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result">
+    <div class="result-header">
+      <span class="tag">✦ Ton assistant est prêt</span>
+      <h2>Voilà ton assistant IA<br>configuré sur mesure</h2>
+      <p>Copie ce prompt et colle-le dans Claude.ai pour activer ton assistant personnalisé.</p>
+    </div>
+
+    <div class="prompt-box">
+      <div class="prompt-box-label">System prompt — à copier dans Claude.ai</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copier</button>
+      <div id="promptOutput">Chargement…</div>
+    </div>
+
+    <div class="how-to">
+      <h3>Comment l'utiliser en 3 étapes</h3>
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <p>Ouvre <a href="https://claude.ai" target="_blank">claude.ai</a> et crée un nouveau projet (menu gauche → "Nouveau projet")</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <p>Dans les paramètres du projet, colle le prompt ci-dessus dans le champ "Instructions personnalisées" ou "System prompt"</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <p>Lance une conversation normale — ton assistant connaît déjà ton métier, tes clients et ton style. Vas-y directement.</p>
+      </div>
+    </div>
+
+    <div class="sprint-cta">
+      <div class="sprint-text">
+        <p>Tu veux un système IA<br>vraiment taillé pour toi ?</p>
+        <p>En 90 min ensemble, on construit bien plus que ça.</p>
+      </div>
+      <button class="btn-sprint" onclick="window.open('https://calendly.com', '_blank')">Réserver mon Sprint IA →</button>
+    </div>
+
+    <button class="btn-restart" onclick="restart()">← Recommencer</button>
+  </div>
+
+</div>
+
+<script>
+  const state = {
+    metier: '',
+    metierDesc: '',
+    clients: '',
+    taches: [],
+    ton: '',
+    objectif: ''
+  };
+
+  let currentStep = 1;
+
+  function selectChip(el, group) {
+    document.querySelectorAll(`#metierChips .chip`).forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    state.metier = el.textContent.trim();
+  }
+
+  function selectMulti(el, group, max) {
+    if (el.classList.contains('active')) {
+      el.classList.remove('active');
+      state.taches = state.taches.filter(t => t !== el.textContent.trim());
+    } else {
+      if (state.taches.length < max) {
+        el.classList.add('active');
+        state.taches.push(el.textContent.trim());
+      }
+    }
+  }
+
+  function selectTon(el, value) {
+    document.querySelectorAll('.ton-card').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    state.ton = value;
+  }
+
+  function goTo(step) {
+    // Validate current step
+    if (step === 2) {
+      state.metierDesc = document.getElementById('metierDesc').value.trim();
+      if (!state.metier && !state.metierDesc) {
+        document.getElementById('err1').style.display = 'block';
+        return;
+      }
+      document.getElementById('err1').style.display = 'none';
+    }
+    if (step === 3) {
+      state.clients = document.getElementById('clientsDesc').value.trim();
+      if (!state.clients) {
+        document.getElementById('err2').style.display = 'block';
+        return;
+      }
+      document.getElementById('err2').style.display = 'none';
+    }
+    if (step === 4) {
+      if (state.taches.length === 0) {
+        document.getElementById('err3').style.display = 'block';
+        return;
+      }
+      document.getElementById('err3').style.display = 'none';
+    }
+    if (step === 5) {
+      if (!state.ton) {
+        document.getElementById('err4').style.display = 'block';
+        return;
+      }
+      document.getElementById('err4').style.display = 'none';
+    }
+
+    document.getElementById(`q${currentStep}`).classList.remove('active');
+    currentStep = step;
+    document.getElementById(`q${step}`).classList.add('active');
+    updateProgress(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateProgress(step) {
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById(`ps${i}`);
+      el.classList.remove('done', 'active');
+      if (i < step) el.classList.add('done');
+      else if (i === step) el.classList.add('active');
+    }
+    document.getElementById('progressLabel').textContent = `${step} / 5`;
+  }
+
+  async function generate() {
+    state.objectif = document.getElementById('objectifDesc').value.trim();
+    if (!state.objectif) {
+      document.getElementById('err5').style.display = 'block';
+      return;
+    }
+    document.getElementById('err5').style.display = 'none';
+
+    // Hide questions, show loading
+    document.getElementById(`q5`).classList.remove('active');
+    document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('screen-generating').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const metierFinal = state.metierDesc || state.metier;
+    const tachesStr = state.taches.join(', ');
+
+    const userPrompt = `Tu es un expert en configuration d'assistants IA pour les indépendants et entrepreneurs.
+
+Je vais te donner le profil d'un·e utilisateur·trice. Tu dois générer un system prompt complet, clair et vraiment personnalisé pour configurer un assistant Claude sur mesure pour cette personne.
+
+PROFIL :
+- Métier / activité : ${metierFinal}
+- Clients : ${state.clients}
+- Tâches prioritaires : ${tachesStr}
+- Style de communication souhaité : ${state.ton}
+- Priorité absolue de l'assistant : ${state.objectif}
+
+CONSIGNES pour le system prompt à générer :
+1. Commence par définir le rôle précis de l'assistant en lien avec ce métier
+2. Intègre les informations sur les clients pour que l'assistant comprenne le contexte
+3. Adapte le style et le ton exactement comme demandé
+4. Mets en avant la tâche prioritaire comme compétence principale
+5. Inclus des instructions concrètes sur comment l'assistant doit se comporter
+6. Écris en français, sois direct et opérationnel — pas de blabla
+
+Génère uniquement le system prompt, sans explication autour. Il doit commencer par "Tu es" et faire entre 200 et 350 mots.`;
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: userPrompt }]
+        })
+      });
+
+      const data = await response.json();
+      const promptText = data.content?.[0]?.text || "Erreur lors de la génération. Réessaie.";
+
+      document.getElementById('screen-generating').style.display = 'none';
+      document.getElementById('screen-result').style.display = 'block';
+      document.getElementById('promptOutput').textContent = promptText;
+
+    } catch (err) {
+      document.getElementById('screen-generating').style.display = 'none';
+      document.getElementById('screen-result').style.display = 'block';
+      document.getElementById('promptOutput').textContent = "Une erreur s'est produite. Vérifie ta connexion et réessaie.";
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function copyPrompt() {
+    const text = document.getElementById('promptOutput').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✓ Copié !';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copier';
+        btn.classList.remove('copied');
+      }, 2500);
+    });
+  }
+
+  function restart() {
+    // Reset state
+    state.metier = '';
+    state.metierDesc = '';
+    state.clients = '';
+    state.taches = [];
+    state.ton = '';
+    state.objectif = '';
+
+    // Reset UI
+    document.querySelectorAll('.chip, .chip-block').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.ton-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('metierDesc').value = '';
+    document.getElementById('clientsDesc').value = '';
+    document.getElementById('objectifDesc').value = '';
+
+    document.getElementById('screen-result').style.display = 'none';
+    document.getElementById('progressWrap').style.display = 'flex';
+    currentStep = 1;
+    updateProgress(1);
+    document.getElementById('q1').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
